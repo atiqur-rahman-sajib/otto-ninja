@@ -1,10 +1,10 @@
-# 🤖 Otto Ninja — Mobile-Controlled Bipedal Robot
+# Otto Ninja — Mobile-Controlled Bipedal Robot
 
 A dual-mode walking & rolling robot built on the **Wemos D1 Mini** (ESP8266), controlled wirelessly via the **RemoteXY** app on your smartphone. Otto Ninja can walk, roll, wave, spin in a circle, and even explore autonomously while avoiding obstacles.
 
 ---
 
-## 📋 Table of Contents
+## Table of Contents
 
 - [Features](#-features)
 - [Hardware Required](#-hardware-required)
@@ -19,16 +19,16 @@ A dual-mode walking & rolling robot built on the **Wemos D1 Mini** (ESP8266), co
 
 ---
 
-## ✨ Features
+## Features
 
 | Feature | How to Trigger |
 |---|---|
-| 🚶 Walk forward / backward | Joystick (Walk mode) |
-| 🛞 Roll in any direction | Joystick (Roll mode) |
-| 🤚 Wave | Button **A** |
-| ⭕ Spin in a circle | Button **B** |
-| 🔍 Autonomous obstacle-avoiding explore | Physical push button on D7 |
-| 📱 Wireless control | RemoteXY app over Wi-Fi |
+|  Walk forward / backward | Joystick (Walk mode) |
+|  Roll in any direction | Joystick (Roll mode) |
+|  Wave | Button **A** |
+|  Spin in a circle | Button **B** |
+|  Autonomous obstacle-avoiding explore | Physical push button on D7 |
+|  Wireless control | RemoteXY app over Wi-Fi |
 
 ---
 
@@ -46,7 +46,7 @@ A dual-mode walking & rolling robot built on the **Wemos D1 Mini** (ESP8266), co
 
 ---
 
-## 🔌 Wiring Diagram
+##  Wiring Diagram
 
 | Component | Signal Pin | D1 Mini Pin | GPIO |
 |---|---|---|---|
@@ -58,11 +58,11 @@ A dual-mode walking & rolling robot built on the **Wemos D1 Mini** (ESP8266), co
 | HC-SR04 | TRIG | **D5** | GPIO 14 |
 | HC-SR04 | ECHO | **D6** | GPIO 12 |
 
-> ⚠️ **Power Tip:** Power the servos from a separate 5V supply (not from the D1 Mini's 3.3V pin). Share a common GND between the D1 Mini and the servo power supply.
+>  **Power Tip:** Power the servos from a separate 5V supply (not from the D1 Mini's 3.3V pin). Share a common GND between the D1 Mini and the servo power supply.
 
 ---
 
-## 💻 Software Setup
+##  Software Setup
 
 ### Step 1 — Install Arduino IDE
 
@@ -97,13 +97,13 @@ Go to **Sketch → Include Library → Manage Libraries** and install:
 
 ---
 
-## 📱 Installing the RemoteXY App
+##  Installing the RemoteXY App
 
 ### Android
 
 Download the APK directly:
 
-**[⬇️ Download RemoteXY APK v4.15.15](https://apkpure.com/remotexy-arduino-control/com.shevauto.remotexy.free/download/4.15.15)**
+**[ Download RemoteXY APK v4.15.15](https://apkpure.com/remotexy-arduino-control/com.shevauto.remotexy.free/download/4.15.15)**
 
 > Since this is an APK file (not from the Play Store), you need to allow installation from unknown sources:
 > - Go to **Settings → Security** (or **Apps → Special App Access**)
@@ -116,7 +116,7 @@ Search for **"RemoteXY"** on the [App Store](https://apps.apple.com/) and instal
 
 ---
 
-## 📡 Connecting Your Phone to Otto Ninja
+##  Connecting Your Phone to Otto Ninja
 
 Otto Ninja creates its **own Wi-Fi hotspot**. You do not need a router.
 
@@ -129,11 +129,11 @@ Otto Ninja creates its **own Wi-Fi hotspot**. You do not need a router.
 5. Tap **+** → **Wi-Fi** → enter IP `192.168.4.1`, port `6377`.
 6. The controller interface will load automatically.
 
-> ✅ When connected, the joystick and buttons on the app will become active.
+>  When connected, the joystick and buttons on the app will become active.
 
 ---
 
-## 🎮 How to Control the Robot
+##  How to Control the Robot
 
 ### RemoteXY App Buttons
 
@@ -141,8 +141,8 @@ Otto Ninja creates its **own Wi-Fi hotspot**. You do not need a router.
 |---|---|---|
 | **Y** | Switch to 🚶 **Walk mode** | Always |
 | **X** | Switch to 🛞 **Roll mode** | Always |
-| **A** | 🤚 **Wave** (stands on left leg, waves right leg twice) | Walk mode only |
-| **B** | ⭕ **Circle** (stands on left leg, spins in a circle for 4 sec) | Walk mode only |
+| **A** |  **Wave** (stands on left leg, waves right leg twice) | Walk mode only |
+| **B** |  **Circle** (stands on left leg, spins in a circle for 4 sec) | Walk mode only |
 
 ### Joystick
 
@@ -157,14 +157,14 @@ Otto Ninja creates its **own Wi-Fi hotspot**. You do not need a router.
 
 | Press | Action |
 |---|---|
-| **First press** | 🔍 Start **Explore mode** — robot rolls forward and spins 180° when it detects an obstacle closer than 10 cm |
-| **Second press** | ⛔ Stop Explore mode and return to standing position |
+| **First press** |  Start **Explore mode** — robot rolls forward and spins 180° when it detects an obstacle closer than 10 cm |
+| **Second press** |  Stop Explore mode and return to standing position |
 
-> 📌 While Explore mode is running, the joystick and app buttons are temporarily disabled.
+>  While Explore mode is running, the joystick and app buttons are temporarily disabled.
 
 ---
 
-## ⚙️ Calibration
+##  Calibration
 
 If the robot doesn't stand upright, adjust these two values at the top of `otto_ninja.ino`:
 
@@ -183,7 +183,7 @@ All other leg and foot positions are calculated automatically from these two val
 
 ---
 
-## 🔧 Tuning & Customization
+##  Tuning & Customization
 
 You can fine-tune the robot's behaviour by changing these `#define` values near the top of the code:
 
@@ -198,7 +198,7 @@ You can fine-tune the robot's behaviour by changing these `#define` values near 
 
 ---
 
-## 🛠️ Troubleshooting
+##  Troubleshooting
 
 | Problem | Solution |
 |---|---|
@@ -210,22 +210,3 @@ You can fine-tune the robot's behaviour by changing these `#define` values near 
 | APK won't install | Enable "Install from Unknown Sources" in Android settings |
 | Upload fails in Arduino IDE | Select correct COM port and make sure D1 Mini board is selected |
 
----
-
-## 📁 Project Structure
-
-```
-otto_ninja/
-├── otto_ninja.ino   # Main Arduino sketch
-└── README.md        # This file
-```
-
----
-
-## 📜 License
-
-This project is open-source and free to use, modify, and share for personal and educational purposes.
-
----
-
-*Built with ❤️ using Wemos D1 Mini + RemoteXY + Otto Ninja frame.*
