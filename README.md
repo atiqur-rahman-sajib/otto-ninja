@@ -1,4 +1,4 @@
-Order Full Moduler Product from this link: [Otto Ninja]([url](https://roboworldbd.com/product/ninja-robot/))
+Order Full Moduler Product from this link: https://roboworldbd.com/product/ninja-robot/
 You can also contact us via whatsapp: +8801601193824
 
 ---
