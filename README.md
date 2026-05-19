@@ -1,3 +1,8 @@
+Order Full Moduler Product from this link: [Otto Ninja]([url](https://roboworldbd.com/product/ninja-robot/))
+You can also contact us via whatsapp: +8801601193824
+
+---
+
 # Otto Ninja — Mobile-Controlled Bipedal Robot
 
 A dual-mode walking & rolling robot built on the **Wemos D1 Mini** (ESP8266), controlled wirelessly via the **RemoteXY** app on your smartphone. Otto Ninja can walk, roll, wave, spin in a circle, and even explore autonomously while avoiding obstacles.
@@ -32,7 +37,7 @@ A dual-mode walking & rolling robot built on the **Wemos D1 Mini** (ESP8266), co
 
 ---
 
-## 🛒 Hardware Required
+##  Hardware Required
 
 | Component | Quantity | Notes |
 |---|---|---|
@@ -43,6 +48,7 @@ A dual-mode walking & rolling robot built on the **Wemos D1 Mini** (ESP8266), co
 | 5V Power Supply / Battery | 1 | Must handle 4 servos (≥ 2A recommended) |
 | Jumper Wires | Several | |
 | Otto Ninja 3D-printed frame | 1 | Standard Otto Ninja body |
+
 
 ---
 
