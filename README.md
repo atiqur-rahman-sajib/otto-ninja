@@ -41,13 +41,13 @@ A dual-mode walking & rolling robot built on the **Wemos D1 Mini** (ESP8266), co
 
 | Component | Quantity | Notes |
 |---|---|---|
-| **Wemos D1 Mini** (ESP8266) | 1 | The main controller |
-| SG90 / MG90 Servo Motor | 4 | 2 for legs, 2 for feet |
-| HC-SR04 Ultrasonic Sensor | 1 | For obstacle detection |
-| Push Button | 1 | Triggers autonomous explore mode |
-| 5V Power Supply / Battery | 1 | Must handle 4 servos (≥ 2A recommended) |
+| **Wemos D1 Mini Extende**  | 1 | The main controller |
+| MG90 Servo Motor | 4 | 2 for legs, 2 for feet |
+| Ultrasonic Sensor | 1 | For obstacle detection |
+| Push Button module | 1 | Triggers autonomous explore mode |
+| 5V Power Supply Unit | 1 | Must handle 4 servos (≥ 2A recommended) |
 | Jumper Wires | Several | |
-| Otto Ninja 3D-printed frame | 1 | Standard Otto Ninja body |
+| Otto Ninja 3D-printed frame & Tire | 1 | Standard Otto Ninja body |
 
 
 ---
