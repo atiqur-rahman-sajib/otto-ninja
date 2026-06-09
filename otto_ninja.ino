@@ -21,7 +21,7 @@
 #include <RemoteXY.h>
 #include <Servo.h>
 
-#define REMOTEXY_WIFI_SSID      "OTTO NINJA2"
+#define REMOTEXY_WIFI_SSID      "OTTO NINJA"
 #define REMOTEXY_WIFI_PASSWORD  "12345678"
 #define REMOTEXY_SERVER_PORT    6377
 
@@ -75,10 +75,10 @@ Servo rightLeg;
 // Adjust LA0 and RA0 to make the robot stand perfectly upright.
 // All other values are derived from these two.
 // ================================================================
-const int LA0 = 70;    // Left  leg neutral angle
+const int LA0 = 65;    // Left  leg neutral angle
 const int RA0 = 110;   // Right leg neutral angle
 
-const int RI  = 100;   // Roll mode leg tilt amount
+const int RI  = 90;   // Roll mode leg tilt amount
 const int WI  = 40;    // Walk mode weight-shift amount
 const int WSI = 50;    // Walk mode swing leg raise amount
 
@@ -91,10 +91,10 @@ int LATR;   // Left  leg tilt-right position
 int RATR;   // Right leg tilt-right position
 
 // Foot step angles — how far the foot rotates per step.
-const int LFFWRS = 30;   // Left  foot forward step
-const int RFFWRS = 30;   // Right foot forward step
-const int LFBWRS = 30;   // Left  foot backward step
-const int RFBWRS = 30;   // Right foot backward step
+const int LFFWRS = 20;   // Left  foot forward step
+const int RFFWRS = 20;   // Right foot forward step
+const int LFBWRS = 20;   // Left  foot backward step
+const int RFBWRS = 20;   // Right foot backward step
 
 
 // ================================================================
@@ -292,7 +292,7 @@ void setup()
   LATL = LA0 + WI;
   RATL = RA0 + WSI;
   LATR = LA0 - WSI;
-  RATR = RA0 - WI;
+  RATR = RA0 - WI - 8;
 
   pinMode(PUSH_BUTTON_PIN, INPUT);
   pinMode(TRIG_PIN, OUTPUT);
@@ -580,8 +580,9 @@ void loop()
     {
       if (rxPhase == 1)
       {
-        leftLeg.write(LA0 + WI);
         rightLeg.write(RA0 + WSI);
+        delay(40);
+        leftLeg.write(LA0 + WI);
         leftFoot.write(90 + CIRCLE_FOOT_SPEED);
         rightFoot.write(90);
 
