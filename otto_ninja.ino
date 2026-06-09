@@ -10,6 +10,12 @@
 // RemoteXY button_B → CIRCLE: stand on left leg, left foot spins circle
 //
 // All servos are permanently attached — no mid-code attach/detach.
+//
+// FIX: 360° continuous rotation servos rarely stop exactly at 90.
+//      FOOT_STOP_L and FOOT_STOP_R are the true neutral (no-creep)
+//      values for each foot servo. Tune them by writing a fixed angle
+//      until both foot servos go completely still at power-on.
+//      Try values 85–95 one at a time until creep stops.
 // ================================================================
 
 
@@ -78,9 +84,22 @@ Servo rightLeg;
 const int LA0 = 65;    // Left  leg neutral angle
 const int RA0 = 110;   // Right leg neutral angle
 
-const int RI  = 90;   // Roll mode leg tilt amount
+const int RI  = 90;    // Roll mode leg tilt amount
 const int WI  = 40;    // Walk mode weight-shift amount
 const int WSI = 50;    // Walk mode swing leg raise amount
+
+// ----------------------------------------------------------------
+// 360° FOOT SERVO STOP CALIBRATION
+// These are the angles at which each foot servo is truly still.
+// Default is 90 but most units creep at that value.
+// Tune FOOT_STOP_L and FOOT_STOP_R independently:
+//   - Upload, power on, watch each foot servo.
+//   - If left foot creeps forward → lower FOOT_STOP_L by 1–2.
+//   - If left foot creeps backward → raise FOOT_STOP_L by 1–2.
+//   - Repeat for right foot with FOOT_STOP_R.
+// ----------------------------------------------------------------
+const int FOOT_STOP_L = 90;   // ← tune this (try 88–93)
+const int FOOT_STOP_R = 90;   // ← tune this (try 88–93)
 
 // Derived leg positions (calculated once in setup)
 int LA1;    // Left  leg roll position
@@ -105,32 +124,26 @@ const int RFBWRS = 20;   // Right foot backward step
 #define OBSTACLE_DISTANCE_CM   10     // Turn if obstacle is closer than this
 #define EXPLORE_ROLL_ENTRY_MS  600    // Time to settle into roll position before moving
 #define EXPLORE_TURN_MS        550    // How long to spin-turn for ~180° rotation
-                                     // Increase if robot doesn't fully turn around
 
-// Roll forward speed: feet angles while rolling forward in explore
-// Both feet push the same direction to roll forward
-#define ROLL_FWD_SPEED         40    // Degrees offset from 90 for forward rolling
-                                     // Increase for faster roll, decrease for slower
+// Roll forward speed
+#define ROLL_FWD_SPEED         40    // Degrees offset from stop for forward rolling
 
 // Roll turn: BOTH feet set to the SAME angle = true pivot in place.
-// Forward rolls use OPPOSITE angles (left=135, right=45).
-// Setting BOTH to 135 means left pushes forward, right pushes backward → robot spins.
-// To reverse turn direction change both to 45 (left backward, right forward).
 #define ROLL_TURN_ANGLE  135    // Both feet to this angle for pivot spin
 
 // After a turn, ignore obstacles for this many ms so robot clears the wall
-#define EXPLORE_CLEAR_MS      800    // Time to roll forward before checking again
+#define EXPLORE_CLEAR_MS      800
 
 // WAVE (button_A)
-#define WAVE_TILT_MS          500    // Time to settle into standing tilt
-#define WAVE_UP_MS            500   // Time for right leg to lift up
-#define WAVE_DOWN_MS          500    // Time for right leg to lower down
-#define WAVE_REPEATS            2    // Number of up/down waves
-#define WAVE_LEG_LIFT          15    // Degrees the right leg waves up/down
+#define WAVE_TILT_MS          500
+#define WAVE_UP_MS            500
+#define WAVE_DOWN_MS          500
+#define WAVE_REPEATS            2
+#define WAVE_LEG_LIFT          15
 
 // CIRCLE (button_B)
-#define CIRCLE_DURATION_MS   4000    // How long to spin in circle
-#define CIRCLE_FOOT_SPEED      20    // Left foot spin speed
+#define CIRCLE_DURATION_MS   4000
+#define CIRCLE_FOOT_SPEED      20
 
 
 // ================================================================
@@ -138,32 +151,23 @@ const int RFBWRS = 20;   // Right foot backward step
 // ================================================================
 int  ModeCounter = 0;   // 0 = Walk mode,  1 = Roll mode
 
-// Walk gait timer
 unsigned long walkCycleStart = 0;
 
-// Push button (EXPLORE) — now 3 phases:
-//   Phase 0 = idle
-//   Phase 1 = entering roll position (settling)
-//   Phase 2 = rolling forward + obstacle watch
-//   Phase 3 = spinning to avoid obstacle (~180°)
 bool          seqActive         = false;
 int           seqPhase          = 0;
 unsigned long seqPhaseStart     = 0;
-bool          clearingAfterTurn = false;   // ignore sensor briefly after each turn
+bool          clearingAfterTurn = false;
 unsigned long clearStart        = 0;
 
-// Edge detection for push button — latched flag cleared each loop
 bool prevButtonState  = false;
-bool buttonEdge       = false;   // true for exactly one loop when button goes LOW→HIGH
+bool buttonEdge       = false;
 
-// RemoteXY actions (WAVE / CIRCLE)
 bool          rxActionActive  = false;
-int           rxActionType    = 0;    // 1 = WAVE,  2 = CIRCLE
+int           rxActionType    = 0;
 int           rxPhase         = 0;
 unsigned long rxPhaseStart    = 0;
 int           rxWaveCount     = 0;
 
-// RemoteXY button edge detection
 uint8_t prevBtnA = 0;
 uint8_t prevBtnB = 0;
 
@@ -179,39 +183,38 @@ long readDistanceCM()
   delayMicroseconds(10);
   digitalWrite(TRIG_PIN, LOW);
   long duration = pulseIn(ECHO_PIN, HIGH, 30000);
-  if (duration == 0) return 999;   // no echo = clear path
+  if (duration == 0) return 999;
   return duration * 0.034 / 2;
 }
 
 
 // ================================================================
-// HELPER — STAND NEUTRAL (walk standing position)
+// HELPER — STAND NEUTRAL
+// Uses calibrated FOOT_STOP values so 360° servos don't creep.
 // ================================================================
 void standNeutral()
 {
   leftLeg.write(LA0);
   rightLeg.write(RA0);
-  leftFoot.write(90);
-  rightFoot.write(90);
+  leftFoot.write(FOOT_STOP_L);
+  rightFoot.write(FOOT_STOP_R);
 }
 
 
 // ================================================================
-// HELPER — ROLL NEUTRAL (roll standing position, feet flat)
+// HELPER — ROLL NEUTRAL
 // ================================================================
 void rollNeutral()
 {
   leftLeg.write(LA1);
   rightLeg.write(RA1);
-  leftFoot.write(90);
-  rightFoot.write(90);
+  leftFoot.write(FOOT_STOP_L);
+  rightFoot.write(FOOT_STOP_R);
 }
 
 
 // ================================================================
 // WALK FORWARD GAIT
-// Call this repeatedly every loop iteration while walking forward.
-// Non-blocking — uses walkCycleStart timer.
 // ================================================================
 void walkForward()
 {
@@ -239,38 +242,36 @@ void walkForward()
   if (e <= P1) {
     leftLeg.write(LATR);
     rightLeg.write(RA0);
-    leftFoot.write(90);
-    rightFoot.write(90);
+    leftFoot.write(FOOT_STOP_L);
+    rightFoot.write(FOOT_STOP_R);
   }
   if (e >= P1 - Overlap && e <= P2) {
     rightLeg.write(map(e, P1 - Overlap, P2, RA0, RATR));
     leftLeg.write(LATR);
   }
   if (e > P2 && e <= P3) {
-    rightFoot.write(90 - RFFWRS);
+    rightFoot.write(FOOT_STOP_R - RFFWRS);
   }
   if (e > P3 && e <= P4) {
-    rightFoot.write(90);
+    rightFoot.write(FOOT_STOP_R);
     leftLeg.write(LA0);
     rightLeg.write(RA0);
-
-
   }
 
   if (e > P4 && e <= P5) {
     rightLeg.write(RATL);
     leftLeg.write(LA0);
-    leftFoot.write(90);
+    leftFoot.write(FOOT_STOP_L);
   }
   if (e >= P5 - Overlap && e <= P6) {
     leftLeg.write(map(e, P5 - Overlap, P6, LA0, LATL));
     rightLeg.write(RATL);
   }
   if (e > P6 && e <= P7) {
-    leftFoot.write(90 + LFFWRS);
+    leftFoot.write(FOOT_STOP_L + LFFWRS);
   }
   if (e > P7 && e <= FullCycle) {
-    leftFoot.write(90);
+    leftFoot.write(FOOT_STOP_L);
     leftLeg.write(LA0);
     rightLeg.write(RA0);
   }
@@ -282,11 +283,13 @@ void walkForward()
 // ================================================================
 void setup()
 {
+  // Attach servos first
   leftFoot.attach(SERVO_LEFT_FOOT_PIN,  544, 2400);
   rightFoot.attach(SERVO_RIGHT_FOOT_PIN,544, 2400);
   leftLeg.attach(SERVO_LEFT_LEG_PIN,   544, 2400);
   rightLeg.attach(SERVO_RIGHT_LEG_PIN, 544, 2400);
 
+  // Calculate derived positions
   LA1  = LA0 + RI;
   RA1  = RA0 - RI;
   LATL = LA0 + WI;
@@ -298,13 +301,24 @@ void setup()
   pinMode(TRIG_PIN, OUTPUT);
   pinMode(ECHO_PIN, INPUT);
 
+  Serial.begin(250000);
+
+  // Init RemoteXY BEFORE writing servo positions.
+  // This closes the boot window where servos could receive
+  // PWM with no logical owner and creep unpredictably.
+  RemoteXY_Init();
+
+  // Now write calibrated stop angles — feet go truly still.
   standNeutral();
   delay(500);
 
-  Serial.begin(250000);
-  RemoteXY_Init();
   Serial.println("OTTO NINJA ready.");
   Serial.println("D7=EXPLORE(roll) | A=WAVE | B=CIRCLE | X=Roll | Y=Walk");
+  Serial.print("Foot stop angles: L=");
+  Serial.print(FOOT_STOP_L);
+  Serial.print("  R=");
+  Serial.println(FOOT_STOP_R);
+  Serial.println("If feet still creep, tune FOOT_STOP_L / FOOT_STOP_R.");
 }
 
 
@@ -316,11 +330,8 @@ void loop()
   RemoteXY_Handler();
 
   // ── Push button edge detection ────────────────────────────────
-  // buttonEdge is true only on the single loop where button goes LOW→HIGH.
-  // We read it once here and use the local variable everywhere below,
-  // which ensures start and stop can never both trigger in the same press.
-  bool currBtn   = (digitalRead(PUSH_BUTTON_PIN) == HIGH);
-  buttonEdge     = (currBtn && !prevButtonState);
+  bool currBtn    = (digitalRead(PUSH_BUTTON_PIN) == HIGH);
+  buttonEdge      = (currBtn && !prevButtonState);
   prevButtonState = currBtn;
 
   // ── RemoteXY button edge detection ───────────────────────────
@@ -331,20 +342,19 @@ void loop()
 
 
   // ================================================================
-  // PUSH BUTTON — START EXPLORE (only when not already active)
+  // PUSH BUTTON — START EXPLORE
   // ================================================================
   if (buttonEdge && !seqActive && !rxActionActive)
   {
     seqActive     = true;
-    seqPhase      = 1;          // Phase 1: enter roll position
+    seqPhase      = 1;
     seqPhaseStart = millis();
     Serial.println(">>> EXPLORE started — entering roll position");
 
-    // Move legs to roll position immediately; feet stay flat
     leftLeg.write(LA1);
     rightLeg.write(RA1);
-    leftFoot.write(90);
-    rightFoot.write(90);
+    leftFoot.write(FOOT_STOP_L);
+    rightFoot.write(FOOT_STOP_R);
   }
 
 
@@ -356,15 +366,12 @@ void loop()
     unsigned long elapsed = millis() - seqPhaseStart;
 
     // ── Phase 1: Settle into roll position ───────────────────────
-    // Just hold the roll position for EXPLORE_ROLL_ENTRY_MS ms so
-    // the servos reach their target before the feet start spinning.
     if (seqPhase == 1)
     {
-      // Keep legs in roll position while settling
       leftLeg.write(LA1);
       rightLeg.write(RA1);
-      leftFoot.write(90);
-      rightFoot.write(90);
+      leftFoot.write(FOOT_STOP_L);
+      rightFoot.write(FOOT_STOP_R);
 
       if (elapsed >= EXPLORE_ROLL_ENTRY_MS)
       {
@@ -375,27 +382,20 @@ void loop()
     }
 
     // ── Phase 2: Roll forward + obstacle detection ────────────────
-    // Both feet spin forward. Legs stay in roll position (LA1/RA1).
-    // After each turn, obstacle check is suppressed for EXPLORE_CLEAR_MS
-    // so the robot physically moves away before it can trigger again.
     else if (seqPhase == 2)
     {
-      // Keep legs in roll position
       leftLeg.write(LA1);
       rightLeg.write(RA1);
 
-      // Both feet spin the same direction to roll forward
-      leftFoot.write(90 + ROLL_FWD_SPEED);
-      rightFoot.write(90 - ROLL_FWD_SPEED);
+      leftFoot.write(FOOT_STOP_L + ROLL_FWD_SPEED);
+      rightFoot.write(FOOT_STOP_R - ROLL_FWD_SPEED);
 
-      // Expire the post-turn clearing window
       if (clearingAfterTurn && (millis() - clearStart >= EXPLORE_CLEAR_MS))
       {
         clearingAfterTurn = false;
         Serial.println(">>> Obstacle sensor re-enabled");
       }
 
-      // Check for obstacle only outside the clearing window
       if (!clearingAfterTurn)
       {
         long dist = readDistanceCM();
@@ -405,9 +405,8 @@ void loop()
           Serial.print(dist);
           Serial.println(" cm — spinning 180");
 
-          // Stop feet before spinning
-          leftFoot.write(90);
-          rightFoot.write(90);
+          leftFoot.write(FOOT_STOP_L);
+          rightFoot.write(FOOT_STOP_R);
           delay(150);
 
           seqPhase      = 3;
@@ -415,7 +414,6 @@ void loop()
         }
       }
 
-      // Second button press stops exploration
       if (buttonEdge)
       {
         rollNeutral();
@@ -429,29 +427,19 @@ void loop()
       }
     }
 
-    // ── Phase 3: Spin 180° to avoid obstacle ────────────────────────
-    // Feet spin in OPPOSITE directions the entire time — this is what
-    // actually rotates the robot. The loop must NOT call readDistanceCM()
-    // here so the sensor cannot interrupt or reset the turn mid-way.
-    // After EXPLORE_TURN_MS the turn is done; a clearing window then
-    // suppresses the sensor in Phase 2 until the robot is clear.
+    // ── Phase 3: Spin 180° ───────────────────────────────────────
     else if (seqPhase == 3)
     {
-      // Keep legs in roll position
       leftLeg.write(LA1);
       rightLeg.write(RA1);
 
-      // BOTH feet same angle = true pivot spin in place.
-      // Forward = left 135 / right 45 (opposite).
-      // Pivot   = left 135 / right 135 (same) → left pushes fwd, right pushes bwd.
       leftFoot.write(ROLL_TURN_ANGLE);
       rightFoot.write(ROLL_TURN_ANGLE);
 
       if (elapsed >= EXPLORE_TURN_MS)
       {
-        // Brief pause, then enable clearing window before rolling again
-        leftFoot.write(90);
-        rightFoot.write(90);
+        leftFoot.write(FOOT_STOP_L);
+        rightFoot.write(FOOT_STOP_R);
         delay(150);
 
         clearingAfterTurn = true;
@@ -462,7 +450,6 @@ void loop()
         Serial.println(">>> 180 turn complete — rolling forward");
       }
 
-      // Button press also stops during a turn
       if (buttonEdge)
       {
         rollNeutral();
@@ -476,22 +463,19 @@ void loop()
       }
     }
 
-    // Block joystick and other controls while EXPLORE is running
     return;
   }
 
 
   // ================================================================
   // REMOTEXY ACTIONS — WAVE (A) and CIRCLE (B)
-  // Only available in Walk mode (ModeCounter == 0)
   // ================================================================
-
   if (!rxActionActive && ModeCounter == 0)
   {
     if (btnAPressed)
     {
       rxActionActive = true;
-      rxActionType   = 1;   // WAVE
+      rxActionType   = 1;
       rxPhase        = 1;
       rxPhaseStart   = millis();
       rxWaveCount    = 0;
@@ -500,7 +484,7 @@ void loop()
     else if (btnBPressed)
     {
       rxActionActive = true;
-      rxActionType   = 2;   // CIRCLE
+      rxActionType   = 2;
       rxPhase        = 1;
       rxPhaseStart   = millis();
       Serial.println(">>> CIRCLE started");
@@ -511,17 +495,15 @@ void loop()
   {
     unsigned long elapsed = millis() - rxPhaseStart;
 
-    // ──────────────────────────────────────────────────────────
-    // WAVE
-    // ──────────────────────────────────────────────────────────
+    // ── WAVE ──────────────────────────────────────────────────────
     if (rxActionType == 1)
     {
       if (rxPhase == 1)
       {
         leftLeg.write(LA0 + WI);
         rightLeg.write(RA0 + WSI);
-        leftFoot.write(90);
-        rightFoot.write(90);
+        leftFoot.write(FOOT_STOP_L);
+        rightFoot.write(FOOT_STOP_R);
 
         if (elapsed >= WAVE_TILT_MS)
         {
@@ -573,9 +555,7 @@ void loop()
       }
     }
 
-    // ──────────────────────────────────────────────────────────
-    // CIRCLE
-    // ──────────────────────────────────────────────────────────
+    // ── CIRCLE ────────────────────────────────────────────────────
     else if (rxActionType == 2)
     {
       if (rxPhase == 1)
@@ -583,8 +563,8 @@ void loop()
         rightLeg.write(RA0 + WSI);
         delay(40);
         leftLeg.write(LA0 + WI);
-        leftFoot.write(90 + CIRCLE_FOOT_SPEED);
-        rightFoot.write(90);
+        leftFoot.write(FOOT_STOP_L + CIRCLE_FOOT_SPEED);
+        rightFoot.write(FOOT_STOP_R);
 
         if (elapsed >= CIRCLE_DURATION_MS)
         {
@@ -606,7 +586,7 @@ void loop()
       }
     }
 
-    return;   // block joystick while action runs
+    return;
   }
 
 
@@ -620,7 +600,6 @@ void loop()
   // ================================================================
   // REMOTEXY — JOYSTICK CONTROL
   // ================================================================
-
   bool joystickIdle = (RemoteXY.J_x >= -10 && RemoteXY.J_x <= 10 &&
                        RemoteXY.J_y >= -10 && RemoteXY.J_y <= 10);
 
@@ -655,14 +634,14 @@ void loop()
         leftLeg.write(LATR);
         rightLeg.write(RATR);
       }
-      if (e >= I1 && e <= I2) rightFoot.write(90 + RFBWRS);
+      if (e >= I1 && e <= I2) rightFoot.write(FOOT_STOP_R + RFBWRS);
       if (e >= I2 && e <= I3) {
-        rightFoot.write(90);
+        rightFoot.write(FOOT_STOP_R);
         leftLeg.write(LATL);
         rightLeg.write(RATL);
       }
-      if (e >= I3 && e <= I4) leftFoot.write(90 - LFBWRS);
-      if (e >= I4 && e <= I5) leftFoot.write(90);
+      if (e >= I3 && e <= I4) leftFoot.write(FOOT_STOP_L - LFBWRS);
+      if (e >= I4 && e <= I5) leftFoot.write(FOOT_STOP_L);
     }
   }
 
@@ -671,13 +650,13 @@ void loop()
   {
     if (joystickIdle)
     {
-      leftFoot.write(90);
-      rightFoot.write(90);
+      leftFoot.write(FOOT_STOP_L);
+      rightFoot.write(FOOT_STOP_R);
       return;
     }
 
-    int LWS = map(RemoteXY.J_y, 100, -100, 135,  45);
-    int RWS = map(RemoteXY.J_y, 100, -100,  45, 135);
+    int LWS = map(RemoteXY.J_y, 100, -100, FOOT_STOP_L + 45, FOOT_STOP_L - 45);
+    int RWS = map(RemoteXY.J_y, 100, -100, FOOT_STOP_R - 45, FOOT_STOP_R + 45);
     int LWD = map(RemoteXY.J_x, 100, -100,  45,   0);
     int RWD = map(RemoteXY.J_x, 100, -100,   0, -45);
     leftFoot.write(LWS + LWD);
